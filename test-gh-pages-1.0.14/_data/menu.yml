@@ -1,0 +1,22 @@
+---
+"/docs/current/":
+  _sort_idx: 1000
+  level: 1
+  subitems:
+    Overview:
+      _sort_idx: 10
+      subitems: {}
+      text: Overview
+      url: "/docs/current/Overview/"
+    Deployment:
+      _sort_idx: 30
+      subitems: {}
+      text: Deployment
+      url: "/docs/current/Deployment/"
+    Configuration:
+      _sort_idx: 40
+      subitems: {}
+      text: Configuration
+      url: "/docs/current/Configuration/"
+  text: Redirect
+  url: "/docs/current/"

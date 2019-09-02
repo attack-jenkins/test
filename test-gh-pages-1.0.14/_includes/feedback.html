@@ -1,0 +1,28 @@
+<hr />
+
+<form class="form form--feedback" data-url="{{ site.data.permanent_config.feedback_post_url }}">
+  <h3 class="form__header text-center">Tell us what you think of this page!</h3>
+
+  <fieldset>
+    <div class="row">
+      <div class="form-group col-md-6 col-sm-6 col-xs-12">
+        <input type="text" class="form-control form__input" name="name" maxlength="40" data-minlength="3" placeholder="Enter name" data-error="Please enter your name" required="required" />
+      </div>
+
+      <div class="form-group col-md-6 col-sm-6 col-xs-12">
+        <input type="email" class="form-control form__input" name="email" data-minlength="3" maxlength="40" placeholder="Enter email" data-error="This email address is invalid" required="required" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <textarea type="text" class="form-control form__textarea" name="description" data-minlength="5" rows="3" placeholder="Description (at least 5 symbols)" maxlength="320" required="required"></textarea>
+    </div>
+
+    <div class="form-group text-center">
+      <button type="submit" class="btn btn-primary form__submit">Submit</button>
+    </div>
+  </fieldset>
+</form>
+
+<script src="{{ site.baseurl }}/public/js/validator.js"></script>
+<script src="{{ site.baseurl }}/public/js/feedback.js"></script>

@@ -1,0 +1,31 @@
+docs:
+- group: Communication
+  groupitems:
+  - doc: KPC
+  - doc: CM
+  - doc: EPL
+- group: Data collection
+  groupitems:
+  - doc: DCX
+  - doc: EPTS
+  - doc: WSTS
+- group: Identity management
+  groupitems:
+  - doc: EPR
+  - doc: EPMX
+- group: Configuration management
+  groupitems:
+  - doc: CMX
+  - doc: ECR
+- group: Software updates
+  groupitems:
+  - doc: OTAO
+- group: Command invocation
+  groupitems:
+  - doc: CEX
+- group: Front end
+  groupitems:
+  - doc: WD
+- group: Service infrastructure
+  groupitems:
+  - doc: SCR
