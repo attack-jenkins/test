@@ -1,0 +1,206 @@
+<div class="row row-full row-offcanvas row-offcanvas-left">
+  <div id="page-content-wrapper">
+    <div class="container-fluid">
+      <div class="row row-full content">
+        
+          
+          
+          
+
+        
+        <div class="page">
+  <h1 class="page-title" id="page-title">Configuration</h1>
+  
+<ul id="markdown-toc">
+  <li><a href="#service-configuration-structure" id="markdown-toc-service-configuration-structure">Service configuration structure</a>    <ul>
+      <li><a href="#general-service-configuration" id="markdown-toc-general-service-configuration">General service configuration</a></li>
+      <li><a href="#kaa-applications" id="markdown-toc-kaa-applications">Kaa applications</a></li>
+      <li><a href="#endpoint-register-interface" id="markdown-toc-endpoint-register-interface">Endpoint register interface</a></li>
+      <li><a href="#communication-service-interface" id="markdown-toc-communication-service-interface">Communication service interface</a></li>
+      <li><a href="#nats" id="markdown-toc-nats">NATS</a></li>
+      <li><a href="#management" id="markdown-toc-management">Management</a></li>
+      <li><a href="#management-1" id="markdown-toc-management-1">Management</a></li>
+      <li><a href="#authentication" id="markdown-toc-authentication">Authentication</a></li>
+      <li><a href="#logging" id="markdown-toc-logging">Logging</a></li>
+    </ul>
+  </li>
+  <li><a href="#built-in-configuration-profiles" id="markdown-toc-built-in-configuration-profiles">Built-in configuration profiles</a>    <ul>
+      <li><a href="#default" id="markdown-toc-default">Default</a></li>
+    </ul>
+  </li>
+</ul>
+
+<p>The EPL loads configuration data from a file (typically backed by a <a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/">Kubernetes config map</a>).
+If the service is unable to retrieve the configuration data, it will not start.
+Refer to the <a href="https://docs.kaaiot.io/DOC/docs/current/Architecture-overview/#configuration">configuration</a> for details.</p>
+
+<h1 id="service-configuration-structure">Service configuration structure</h1>
+
+<p>The recommended configuration format is YAML.
+The below sections describe the officially supported configuration options that influence various aspects of the service functionality.
+The service may support options other than the ones listed below, but those are not a part of the public API and may be changed or deleted at any time.</p>
+
+<!-- SECTION: service-specific configuration -->
+
+<h2 id="general-service-configuration">General service configuration</h2>
+
+<p>EPL uses a standard Spring Boot <code class="highlighter-rouge">server.port</code> property to configure the port to expose the REST API at.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">server</span><span class="pi">:</span>
+  <span class="na">port</span><span class="pi">:</span> <span class="s">&lt;unsigned short integer&gt;</span>  <span class="c1"># Server port used to expose the REST API at</span>
+</code></pre></div></div>
+
+<!-- SECTION: application-specific configuration -->
+
+<h2 id="kaa-applications">Kaa applications</h2>
+
+<p>Many Kaa services can be configured for different behavior depending on the application version of the endpoint the processed data relates to.
+This is called <em>appversion-specific behavior</em> and is handled in service configurations under <code class="highlighter-rouge">kaa.applications</code>.</p>
+
+<p>EPL can update metadata keys in the endpoint register on receiving EP connectivity events.
+The metadata keys to update are controlled with appversion-specific configuration below.
+If the key is not defined for an appversion, EPL does not update it in the register.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">kaa</span><span class="pi">:</span>
+  <span class="na">applications</span><span class="pi">:</span>
+    <span class="s">&lt;application 1 name&gt;</span><span class="pi">:</span>
+      <span class="na">versions</span><span class="pi">:</span>
+        <span class="s">&lt;application 1 version 1 name&gt;</span><span class="pi">:</span>
+          <span class="na">connectivity</span><span class="pi">:</span>
+            <span class="na">metadata-keys</span><span class="pi">:</span>
+              <span class="na">state</span><span class="pi">:</span> <span class="s">&lt;string&gt;</span>    <span class="c1"># EP metadata key to update with the current EP connectivity state (true for connected / false for disconnected state)</span>
+              <span class="na">state-ts</span><span class="pi">:</span> <span class="s">&lt;string&gt;</span> <span class="c1"># EP metadata key to update with the last EP connectivity transition timestamp</span>
+            <span class="na">time-series</span><span class="pi">:</span>
+              <span class="na">name</span><span class="pi">:</span> <span class="s">&lt;string&gt;</span>     <span class="c1"># Connectivity state time series name that EPL will produce.</span>
+</code></pre></div></div>
+
+<p>For example:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">kaa</span><span class="pi">:</span>
+  <span class="na">applications</span><span class="pi">:</span>
+    <span class="na">smart_kettle</span><span class="pi">:</span>
+      <span class="na">versions</span><span class="pi">:</span>
+        <span class="na">kettle_v1</span><span class="pi">:</span>                     <span class="c1"># Connectivity state keys are not managed for "kettle_v1" application version</span>
+        <span class="na">kettle_v2</span><span class="pi">:</span>                     <span class="c1"># "kettle_v2" defines EP metadata keys for connectivity state and last transition timestamps</span>
+          <span class="na">connectivity</span><span class="pi">:</span>
+            <span class="na">metadata-keys</span><span class="pi">:</span>
+              <span class="na">state</span><span class="pi">:</span> <span class="s">connected</span>           <span class="c1"># "connected" tag will be set to true when EP is connected and false otherwise</span>
+              <span class="na">state-ts</span><span class="pi">:</span> <span class="s">connectivity_ts</span>  <span class="c1"># "connectivity_ts" tag will contain the last transition timestamp</span>
+            <span class="na">time-series</span><span class="pi">:</span>
+              <span class="na">name</span><span class="pi">:</span> <span class="s">ep-online</span>            <span class="c1"># 'ep-online' time series will be published on EP connect/disconnect</span>
+        <span class="na">kettle_v3</span><span class="pi">:</span>                     <span class="c1"># "kettle_v3" explicitly specifies no connectivity metadata fields</span>
+          <span class="na">connectivity</span><span class="pi">:</span>
+            <span class="na">metadata-keys</span><span class="pi">:</span> <span class="no">null</span>
+</code></pre></div></div>
+
+<!-- SECTION: external kaa services configuration -->
+
+<h2 id="endpoint-register-interface">Endpoint register interface</h2>
+
+<p>Use the below parameters to configure the REST-based endpoint register interface EPL uses to validate that EP ID exists and to listen to EP unregistered events.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">kaa</span><span class="pi">:</span>
+  <span class="na">epl</span><span class="pi">:</span>
+    <span class="na">ep-register</span><span class="pi">:</span>
+      <span class="na">base-url</span><span class="pi">:</span> <span class="s">&lt;URL&gt;</span>                  <span class="c1"># Base URL of the endpoint register REST API</span>
+</code></pre></div></div>
+
+<h2 id="communication-service-interface">Communication service interface</h2>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">kaa</span><span class="pi">:</span>
+  <span class="na">epl</span><span class="pi">:</span>
+    <span class="na">communication-service</span><span class="pi">:</span>
+      <span class="na">service-instance</span><span class="pi">:</span>
+        <span class="na">name</span><span class="pi">:</span> <span class="s">&lt;service instance name&gt;</span>  <span class="c1"># Instance name of the communication service</span>
+</code></pre></div></div>
+
+<!-- SECTION: common external services (NATS, etc.) -->
+
+<h2 id="nats">NATS</h2>
+
+<p>The below parameters configure EPL’s connection to NATS.
+Note that for security reasons NATS username and password are sourced from the <a href="/kaa/docs/current/Deployment/#environment-variables">environment variables</a>.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">nats</span><span class="pi">:</span>
+  <span class="na">urls</span><span class="pi">:</span> <span class="s">&lt;comma separated list of URL&gt;</span>   <span class="c1"># NATS connection URLs</span>
+</code></pre></div></div>
+
+<!-- SECTION: management -->
+
+<h2 id="management">Management</h2>
+
+<!-- Current Spring Boot Actuator version is 1.5.6: see the link below. -->
+<p>EPL monitoring and management implementation is based on the <a href="https://docs.spring.io/spring-boot/docs/1.5.6.RELEASE/reference/html/production-ready.html">Spring Boot Actuator</a>.
+Refer to the corresponding documentation for the list of supported configuration options.</p>
+
+<!-- SECTION: management -->
+
+<h2 id="management-1">Management</h2>
+
+<!-- SECTION: Authentication -->
+
+<h2 id="authentication">Authentication</h2>
+
+<p>EPL use <a href="https://gitlab.kaaiot.net/core/lib/auth-kaa-starter">auth-kaa-starter</a> for make authenticated REST API calls. 
+Authentication implemented according to oAuth protocol.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">security</span><span class="pi">:</span>
+  <span class="na">oauth2</span><span class="pi">:</span>
+    <span class="na">client</span><span class="pi">:</span>
+      <span class="na">enabled</span><span class="pi">:</span> <span class="s">&lt;boolean&gt;</span>             <span class="c1"># Is authentication enable for EPL REST calls. False by default</span>
+      <span class="na">base-url</span><span class="pi">:</span> <span class="s">&lt;URL&gt;</span>                <span class="c1"># Base host url to oAuth provider (e.g. Keycloak)</span>
+      <span class="na">realm</span><span class="pi">:</span> <span class="s">&lt;realm name&gt;</span>            <span class="c1"># Realm in oAuth provider</span>
+      <span class="na">clientId</span><span class="pi">:</span> <span class="s">&lt;client ID&gt;</span>          <span class="c1"># Client ID on whose behalf the requests will be made</span>
+      <span class="na">clientSecret</span><span class="pi">:</span> <span class="s">&lt;client secret&gt;</span>  <span class="c1"># Client secret on whose behalf the requests will be made</span>
+</code></pre></div></div>
+
+<!-- SECTION: logging -->
+
+<h2 id="logging">Logging</h2>
+
+<p>By default, EPL uses <a href="https://docs.spring.io/spring-boot/docs/1.5.6.RELEASE/reference/html/howto-logging.html">Spring Boot logging configuration</a> with <a href="https://logback.qos.ch/">logback</a> for logging.
+Refer to the corresponding documentation for the list of supported configuration options.</p>
+
+<h1 id="built-in-configuration-profiles">Built-in configuration profiles</h1>
+
+<p>For your convenience, EPL comes with a default built-in configuration profile.</p>
+
+<p>Built-in profile is optimized for a Kubernetes-based production deployment.
+It does not define any Kaa applications—you have to configure those for any specific Kaa-based solution.</p>
+
+<h2 id="default">Default</h2>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">server</span><span class="pi">:</span>
+  <span class="na">port</span><span class="pi">:</span> <span class="m">80</span>
+
+<span class="na">kaa</span><span class="pi">:</span>
+  <span class="na">epl</span><span class="pi">:</span>
+    <span class="na">communication-service</span><span class="pi">:</span>
+      <span class="na">service-instance</span><span class="pi">:</span>
+        <span class="na">name</span><span class="pi">:</span> <span class="s">kpc</span>
+    <span class="na">ep-register</span><span class="pi">:</span>
+      <span class="na">base-url</span><span class="pi">:</span> <span class="s">http://epr</span>
+
+<span class="na">nats</span><span class="pi">:</span>
+  <span class="na">urls</span><span class="pi">:</span> <span class="s">nats://nats:4222</span>
+
+<span class="na">management</span><span class="pi">:</span>
+  <span class="na">port</span><span class="pi">:</span> <span class="m">8080</span>
+  <span class="na">security</span><span class="pi">:</span>
+    <span class="na">enabled</span><span class="pi">:</span> <span class="no">false</span>
+
+<span class="na">endpoints</span><span class="pi">:</span>
+  <span class="na">enabled</span><span class="pi">:</span> <span class="no">false</span>
+  <span class="na">health</span><span class="pi">:</span>
+    <span class="na">enabled</span><span class="pi">:</span> <span class="no">true</span>
+    <span class="s">mapping.UNKNOWN</span><span class="pi">:</span> <span class="s">SERVICE_UNAVAILABLE</span>
+  <span class="s">info.enabled</span><span class="pi">:</span> <span class="no">true</span>
+  <span class="s">metrics.enabled</span><span class="pi">:</span> <span class="no">true</span>
+
+</code></pre></div></div>
+
+</div>
+
+      </div>
+    </div>
+  </div>
+</div>

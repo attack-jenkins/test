@@ -1,0 +1,246 @@
+<div class="row row-full row-offcanvas row-offcanvas-left">
+  <div id="page-content-wrapper">
+    <div class="container-fluid">
+      <div class="row row-full content">
+        
+          
+          
+          
+
+        
+        <div class="page">
+  <h1 class="page-title" id="page-title">Deployment</h1>
+  
+<ul id="markdown-toc">
+  <li><a href="#runtime-dependencies" id="markdown-toc-runtime-dependencies">Runtime dependencies</a></li>
+  <li><a href="#environment-variables" id="markdown-toc-environment-variables">Environment variables</a></li>
+  <li><a href="#kubernetes" id="markdown-toc-kubernetes">Kubernetes</a>    <ul>
+      <li><a href="#deployment-descriptor" id="markdown-toc-deployment-descriptor">Deployment descriptor</a></li>
+      <li><a href="#volumes-and-secrets" id="markdown-toc-volumes-and-secrets">Volumes and secrets</a></li>
+    </ul>
+  </li>
+  <li><a href="#docker" id="markdown-toc-docker">Docker</a></li>
+</ul>
+
+<p>All Kaa services, including EPL, are distributed as <a href="https://www.docker.com/">Docker</a> images.
+You can run these images using software containerization and orchestration tools, such as Docker, Docker Swarm, Docker Compose, <a href="https://kubernetes.io/">Kubernetes</a>, etc.
+Kubernetes is the recommended system for managing Kaa-based clusters.</p>
+
+<h1 id="runtime-dependencies">Runtime dependencies</h1>
+
+<p>EPL has the following runtime dependencies:</p>
+
+<ul>
+  <li><a href="http://nats.io/">NATS</a> for inter-service communication.</li>
+</ul>
+
+<p>Regardless of the deployment method, always make sure that you have dependency services up and running prior to starting up EPL.</p>
+
+<p>The below instructions where EPL sources its configuration data from a local file.</p>
+
+<h1 id="environment-variables">Environment variables</h1>
+
+<p>The table below summarizes the variables supported by the EPL Docker image and provides default values along with descriptions.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Variable name</th>
+      <th>Default value</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="highlighter-rouge">INSTANCE_NAME</code></td>
+      <td><strong>epl</strong></td>
+      <td>Service instance name.</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">APP_CONFIG_PATH</code></td>
+      <td><strong>/srv/epl/service-config.yml</strong></td>
+      <td>Path to the service configuration YAML file inside container. In case of running in Kubernetes, consider using <a href="https://kubernetes.io/docs/concepts/storage/volumes/">K8s Volumes</a> for externalization.</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">JMX_ENABLE</code></td>
+      <td><strong>false</strong></td>
+      <td>Enables JMX monitoring.</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">JMX_PORT</code></td>
+      <td><strong>10500</strong></td>
+      <td>JMX service port.</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">JMX_MONITOR_USER_PASSWORD</code></td>
+      <td> </td>
+      <td>JMX monitor user password. Required when <code class="highlighter-rouge">JMX_ENABLE=true</code>.</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">JAVA_OPTIONS</code></td>
+      <td><strong>-Xmx700m</strong></td>
+      <td>Additional parameters for Java process launch.</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">NATS_USERNAME</code></td>
+      <td> </td>
+      <td>Username for connecting to NATS message broker.</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">NATS_PASSWORD</code></td>
+      <td> </td>
+      <td>Password for connecting to NATS message broker.</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">KAA_LICENSE_CERT_PATH</code></td>
+      <td><strong>/run/license/license.p12</strong></td>
+      <td>Path to the Kaa platform license certificate file in PKCS #12 format.</td>
+    </tr>
+    <tr>
+      <td><code class="highlighter-rouge">KAA_LICENSE_CERT_PASSWORD</code></td>
+      <td> </td>
+      <td>License certificate password. Required.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h1 id="kubernetes">Kubernetes</h1>
+
+<p>To run EPL on Kubernetes:</p>
+<ol>
+  <li><a href="https://kubernetes.io/docs/home/">Install Kubernetes</a>.</li>
+  <li>Set up <a href="http://nats.io/documentation/tutorials/nats-kubernetes/">NATS as a Kubernetes service</a> or a standalone server.</li>
+  <li>Prepare <a href="#deployment-descriptor">Kubernetes deployment descriptor</a>.</li>
+  <li><strong>(Optional)</strong> Configure <a href="#volumes-and-secrets">volumes and secrets</a>.</li>
+  <li>Prepare a <a href="https://docs.kaaiot.io/DOC/docs/current/Architecture-overview/#configuration">config map</a>, or a separate <a href="/kaa/docs/current/Configuration">configuration file</a> and save it into a file available to pods under <code class="highlighter-rouge">APP_CONFIG_PATH</code>.</li>
+  <li>Start up the pod:
+    <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl create -f &lt;deployment descriptor filename&gt;
+</code></pre></div>    </div>
+  </li>
+  <li>Check that pods are running:
+    <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl get pods
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+<h2 id="deployment-descriptor">Deployment descriptor</h2>
+
+<p>Provided below is a sample <a href="https://kubernetes.io/docs/concepts/workloads/controllers/deployment/">deployment descriptor</a> file that pulls the EPL version 1.0.0 Docker image from the official KaaIoT repository and runs one service replica (pod) with 1 GB RAM limit.
+With this deployment descriptor, the configuration file is expected to be located at <code class="highlighter-rouge">~/epl-config/service-config.yml</code> of the host machine.
+See <code class="highlighter-rouge">spec.template.spec.volumes.hostPath</code> below and the default <a href="#environment-variables"><code class="highlighter-rouge">APP_CONFIG_PATH</code></a> above.</p>
+
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">extensions/v1beta1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">Deployment</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">epl</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">replicas</span><span class="pi">:</span> <span class="m">1</span>
+  <span class="na">template</span><span class="pi">:</span>
+    <span class="na">metadata</span><span class="pi">:</span>
+      <span class="na">labels</span><span class="pi">:</span>
+        <span class="na">app</span><span class="pi">:</span> <span class="s">epl</span>
+        <span class="na">tier</span><span class="pi">:</span> <span class="s">backend</span>
+    <span class="na">spec</span><span class="pi">:</span>
+      <span class="na">containers</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">epl</span>
+        <span class="na">image</span><span class="pi">:</span> <span class="s">hub.kaaiot.net/kaaiot/epl/epl:1.0.0</span>
+        <span class="na">terminationMessagePolicy</span><span class="pi">:</span> <span class="s">FallbackToLogsOnError</span>
+        <span class="na">imagePullPolicy</span><span class="pi">:</span> <span class="s">Always</span>
+        <span class="na">livenessProbe</span><span class="pi">:</span>
+          <span class="na">httpGet</span><span class="pi">:</span>
+            <span class="na">path</span><span class="pi">:</span> <span class="s">/health</span>
+            <span class="na">port</span><span class="pi">:</span> <span class="s">management</span>
+          <span class="na">initialDelaySeconds</span><span class="pi">:</span> <span class="m">30</span>
+          <span class="na">periodSeconds</span><span class="pi">:</span> <span class="m">5</span>
+        <span class="na">readinessProbe</span><span class="pi">:</span>
+          <span class="na">httpGet</span><span class="pi">:</span>
+            <span class="na">path</span><span class="pi">:</span> <span class="s">/health</span>
+            <span class="na">port</span><span class="pi">:</span> <span class="s">management</span>
+          <span class="na">initialDelaySeconds</span><span class="pi">:</span> <span class="m">1</span>
+          <span class="na">periodSeconds</span><span class="pi">:</span> <span class="m">1</span>
+        <span class="na">resources</span><span class="pi">:</span>
+          <span class="na">requests</span><span class="pi">:</span>
+            <span class="na">memory</span><span class="pi">:</span> <span class="s">100Mi</span>
+          <span class="na">limits</span><span class="pi">:</span>
+            <span class="na">memory</span><span class="pi">:</span> <span class="s">1Gi</span>
+        <span class="na">env</span><span class="pi">:</span>
+        <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">KAA_LICENSE_CERT_PASSWORD</span>
+          <span class="na">valueFrom</span><span class="pi">:</span>
+            <span class="na">secretKeyRef</span><span class="pi">:</span>
+              <span class="na">name</span><span class="pi">:</span> <span class="s">license.cert.pass</span>
+              <span class="na">key</span><span class="pi">:</span> <span class="s">password</span>
+        <span class="na">ports</span><span class="pi">:</span>
+        <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">management</span>
+          <span class="na">containerPort</span><span class="pi">:</span> <span class="m">8080</span>
+        <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">jmx</span>
+          <span class="na">containerPort</span><span class="pi">:</span> <span class="m">10500</span>
+        <span class="na">volumeMounts</span><span class="pi">:</span>
+        <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">license-volume</span>
+          <span class="na">mountPath</span><span class="pi">:</span> <span class="s">/run/license</span>
+        <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">epl-conf-volume</span>
+          <span class="na">mountPath</span><span class="pi">:</span> <span class="s">/srv/epl</span>
+      <span class="na">imagePullSecrets</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">kaaid</span>
+      <span class="na">volumes</span><span class="pi">:</span>
+        <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">epl-conf-volume</span>
+          <span class="na">hostPath</span><span class="pi">:</span> <span class="s">~/epl-config</span>
+          <span class="na">defaultMode</span><span class="pi">:</span> <span class="m">444</span>
+        <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">license-volume</span>
+          <span class="na">secret</span><span class="pi">:</span>
+            <span class="na">secretName</span><span class="pi">:</span> <span class="s">license.cert</span>
+</code></pre></div></div>
+
+<p>Below are some notable parameters of the deployment descriptor:</p>
+<ul>
+  <li><code class="highlighter-rouge">spec.replicas</code> defines the number of service instance replicas.</li>
+  <li><code class="highlighter-rouge">spec.template.spec.containers.image</code> defines the Docker image to be used, while <code class="highlighter-rouge">spec.template.spec.containers.imagePullPolicy</code> defines the image update policy.</li>
+  <li><code class="highlighter-rouge">spec.template.spec.imagePullSecrets</code> specifies the <a href="https://kubernetes.io/docs/concepts/containers/images/#specifying-imagepullsecrets-on-a-pod">image pull secret</a> for the official KaaIoT docker registry.
+To define this secret, use your KaaID credentials:
+    <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ export HISTCONTROL=ignorespace  # Prevent saving your credentials in the shell history
+$  KAAID_USER=&lt;your KaaID username&gt;; kubectl create secret docker-registry kaaid --docker-server=hub.kaaiot.net --docker-username=$KAAID_USER --docker-email=$KAAID_USER --docker-password=&lt;your KaaID password&gt;
+</code></pre></div>    </div>
+  </li>
+  <li><code class="highlighter-rouge">spec.template.spec.volumes.name.license-volume</code> specifies the volume to contain the license certificate file. We recommend that this volume is created from a <a href="https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod">Kubernetes secret</a>.</li>
+  <li><code class="highlighter-rouge">spec.template.spec.containers.name.epl.env.name.KAA_LICENSE_CERT_PASSWORD</code> defines the license certificate password environment variable, which is also recommended to be set from a Kubernetes secret.</li>
+  <li><code class="highlighter-rouge">spec.template.metadata.labels.app</code> defines the application label to map Kubernetes deployment to the service.</li>
+  <li><code class="highlighter-rouge">spec.template.spec.containers.resources</code> defines resources available to each replica. See how Kubernetes <a href="https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/">manages compute resources for containers</a>.</li>
+  <li><code class="highlighter-rouge">spec.template.spec.containers.env</code> defines <a href="#environment-variables">the environment variables</a> that Kubernetes passes to the service replica.</li>
+  <li><code class="highlighter-rouge">spec.template.spec.containers.ports</code> defines the exposed ports.
+See <a href="https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/">Connecting applications with services</a>.</li>
+</ul>
+
+<h2 id="volumes-and-secrets">Volumes and secrets</h2>
+
+<p>The above deployment descriptor mounts a host machine directory for the service to load its configuration file from.
+However, such simple configuration may not be convenient in multi-node deployments and you might want to create other types of volumes.
+Besides, if you want to pass sensible pieces of information to the service using the <a href="#environment-variables">environment variables</a>, such as logins and passwords for dependency services, we recommend using Kubernetes Secrets.
+To learn more about these subjects, refer to Kubernetes documentation:</p>
+<ul>
+  <li><a href="https://kubernetes.io/docs/concepts/storage/volumes/">Volumes</a></li>
+  <li><a href="https://kubernetes.io/docs/concepts/configuration/secret/">Secrets</a></li>
+  <li><a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/">Config maps</a></li>
+</ul>
+
+<h1 id="docker">Docker</h1>
+
+<p>To run EPL in Docker:</p>
+<ol>
+  <li><a href="https://docs.docker.com/engine/installation/">Install Docker</a>.</li>
+  <li>Set up <a href="http://nats.io/documentation/tutorials/gnatsd-docker/">NATS as a Docker container</a> or a standalone server.</li>
+  <li>Prepare a <a href="/kaa/docs/current/Configuration">configuration file</a> and save it into a file available to the container under <code class="highlighter-rouge">APP_CONFIG_PATH</code>.</li>
+  <li>Run Docker container.
+For example, use the following command to run the EPL version 1.0.0 image:
+    <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ docker run \
+    -p 80:80 \
+    -v &lt;host_path_to_config_directory&gt;:/srv/epl \
+    hub.kaaiot.net/kaaiot/epl/epl:1.0.0
+</code></pre></div>    </div>
+  </li>
+</ol>
+
+</div>
+
+      </div>
+    </div>
+  </div>
+</div>
