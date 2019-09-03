@@ -1,3 +1,5 @@
+---
+---
 /* custom template */
 html, body {
    height: 100%;
@@ -570,7 +572,7 @@ blockquote.note {
 }
 
 blockquote.note:before {
-  background-image: url('/kaa/public/notes/note.png');
+  background-image: url('{{ site.baseurl }}/public/notes/note.png');
 }
 
 blockquote.note table {
@@ -584,7 +586,7 @@ blockquote.tip {
 }
 
 blockquote.tip:before {
-  background-image: url('/kaa/public/notes/tip.png');
+  background-image: url('{{ site.baseurl }}/public/notes/tip.png');
 }
 
 blockquote.tip table {
@@ -598,7 +600,7 @@ blockquote.important {
 }
 
 blockquote.important:before {
-  background-image: url('/kaa/public/notes/important.png');
+  background-image: url('{{ site.baseurl }}/public/notes/important.png');
 }
 
 blockquote.important table {
@@ -612,7 +614,7 @@ blockquote.caution {
 }
 
 blockquote.caution:before {
-  background-image: url('/kaa/public/notes/caution.png');
+  background-image: url('{{ site.baseurl }}/public/notes/caution.png');
 }
 
 blockquote.caution table {
@@ -693,7 +695,7 @@ pre, .nav-tabs>li>a {
   width: 84%;
   margin: 13px 8%;
   padding: 6px 6px 6px 40px;
-  background: url('/kaa/public/search.png') #434343;
+  background: url('{{ site.baseurl }}/public/search.png') #434343;
   background-repeat: no-repeat;
   background-size: 30px;
   background-position-y: center;
@@ -773,7 +775,7 @@ pre, .nav-tabs>li>a {
   appearance:none;
   -moz-appearance:none; /* Firefox */
   -webkit-appearance:none; /* Safari and Chrome */
-  background: url('/kaa/public/drop-down.png') no-repeat right #f2f2f2;
+  background: url('{{ site.baseurl }}/public/drop-down.png') no-repeat right #f2f2f2;
 }
 
 .search #version-select:before {
